@@ -308,6 +308,84 @@ This project uses Git for version control with meaningful commit messages:
 - `docs: description` - Documentation updates
 - `test: description` - Test additions or modifications
 
+## Deployment
+
+### Deploy to Vercel
+
+This application can be deployed to Vercel for serverless execution.
+
+#### Prerequisites:
+- Vercel account (free at https://vercel.com)
+- Git repository (GitHub, GitLab, or Bitbucket)
+- MongoDB Atlas account (for cloud database)
+
+#### Steps:
+
+1. **Prepare MongoDB Atlas**:
+   - Create a cluster at https://www.mongodb.com/cloud/atlas
+   - Create a database user
+   - Whitelist your Vercel IP (or use 0.0.0.0 for all IPs)
+   - Get your connection string
+
+2. **Push to GitHub**:
+   ```bash
+   git add .
+   git commit -m "Prepare for Vercel deployment"
+   git push origin main
+   ```
+
+3. **Connect to Vercel**:
+   - Go to https://vercel.com/new
+   - Import your GitHub repository
+   - Select "Other" as the framework
+   - Click "Deploy"
+
+4. **Configure Environment Variables**:
+   - In Vercel dashboard, go to Settings > Environment Variables
+   - Add the following variables:
+     ```
+     MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority&appName=YourApp
+     TIMESTAMP_TOLERANCE_SECONDS=300
+     QUANTITY_TOLERANCE_PCT=0.01
+     NODE_ENV=production
+     ```
+
+5. **Redeploy**:
+   - After setting environment variables, trigger a redeploy from the Deployments tab
+
+#### Environment Configuration for Vercel:
+- The application automatically uses Node.js runtime
+- `vercel.json` is configured to route all requests through the main server
+- Database connections are managed through environment variables
+- Reports are generated in the `/tmp` directory (serverless-safe)
+
+#### Note on File Storage:
+For serverless environments, the reports directory might not persist. Consider:
+- Storing reports in MongoDB (future enhancement)
+- Using AWS S3 or similar object storage
+- Using Vercel KV for temporary storage
+
+### Local Development Setup
+
+1. Clone and install:
+   ```bash
+   git clone <your-repo-url>
+   cd Assignment_CoinX
+   npm install
+   ```
+
+2. Create `.env` file (use `.env.example` as template):
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Update `.env` with your MongoDB connection string and desired tolerances
+
+4. Start development server:
+   ```bash
+   npm run dev
+   ```
+
 ## Future Enhancements
 
 Potential improvements for production deployment:
