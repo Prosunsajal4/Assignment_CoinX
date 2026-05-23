@@ -1,9 +1,14 @@
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const { ingestAllTransactions } = require('../services/ingestionService');
-const { matchTransactions } = require('../services/matchingService');
-const { generateCSVReport, saveReconciliationRun, getReconciliationRun, getUnmatchedTransactions } = require('../services/reportService');
-const config = require('../utils/config');
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+const { ingestAllTransactions } = require("../services/ingestionService");
+const { matchTransactions } = require("../services/matchingService");
+const {
+  generateCSVReport,
+  saveReconciliationRun,
+  getReconciliationRun,
+  getUnmatchedTransactions,
+} = require("../services/reportService");
+const config = require("../utils/config");
 
 /**
  * Trigger reconciliation run
@@ -12,46 +17,59 @@ const config = require('../utils/config');
 const reconcile = async (req, res) => {
   try {
     // Get config overrides from request body
-    const timestampToleranceSeconds = req.body.timestampToleranceSeconds || config.timestampToleranceSeconds;
-    const quantityTolerancePct = req.body.quantityTolerancePct || config.quantityTolerancePct;
-    
+    const timestampToleranceSeconds =
+      req.body.timestampToleranceSeconds || config.timestampToleranceSeconds;
+    const quantityTolerancePct =
+      req.body.quantityTolerancePct || config.quantityTolerancePct;
+
     const runConfig = {
       timestampToleranceSeconds,
-      quantityTolerancePct
+      quantityTolerancePct,
     };
-    
-    console.log('Starting reconciliation with config:', runConfig);
-    
+
+    console.log("Starting reconciliation with config:", runConfig);
+
     // Generate unique run ID
     const runId = uuidv4();
-    
+
     // Ingest transactions
-    const userFilePath = path.join(__dirname, '../../data/user_transactions.csv');
-    const exchangeFilePath = path.join(__dirname, '../../data/exchange_transactions.csv');
-    
-    const ingestionStats = await ingestAllTransactions(userFilePath, exchangeFilePath);
-    
+    const userFilePath = path.join(__dirname, "../data/user_transactions.csv");
+    const exchangeFilePath = path.join(
+      __dirname,
+      "../data/exchange_transactions.csv",
+    );
+
+    const ingestionStats = await ingestAllTransactions(
+      userFilePath,
+      exchangeFilePath,
+    );
+
     // Match transactions
     const matchingResults = await matchTransactions(runConfig);
-    
+
     // Generate CSV report
     const reportPath = await generateCSVReport(matchingResults, runId);
-    
+
     // Save reconciliation run to database
-    await saveReconciliationRun(runId, runConfig, matchingResults.stats, reportPath);
-    
+    await saveReconciliationRun(
+      runId,
+      runConfig,
+      matchingResults.stats,
+      reportPath,
+    );
+
     res.status(200).json({
       success: true,
       runId,
       stats: matchingResults.stats,
       ingestion: ingestionStats,
-      config: runConfig
+      config: runConfig,
     });
   } catch (error) {
-    console.error('Error in reconciliation:', error);
+    console.error("Error in reconciliation:", error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -63,34 +81,37 @@ const reconcile = async (req, res) => {
 const getReport = async (req, res) => {
   try {
     const { runId } = req.params;
-    
+
     const reconciliationRun = await getReconciliationRun(runId);
-    
+
     if (!reconciliationRun) {
       return res.status(404).json({
         success: false,
-        error: 'Reconciliation run not found'
+        error: "Reconciliation run not found",
       });
     }
-    
-    const fs = require('fs');
+
+    const fs = require("fs");
     if (!fs.existsSync(reconciliationRun.reportPath)) {
       return res.status(404).json({
         success: false,
-        error: 'Report file not found'
+        error: "Report file not found",
       });
     }
-    
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=reconciliation_${runId}.csv`);
-    
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=reconciliation_${runId}.csv`,
+    );
+
     const fileStream = fs.createReadStream(reconciliationRun.reportPath);
     fileStream.pipe(res);
   } catch (error) {
-    console.error('Error fetching report:', error);
+    console.error("Error fetching report:", error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -102,16 +123,16 @@ const getReport = async (req, res) => {
 const getSummary = async (req, res) => {
   try {
     const { runId } = req.params;
-    
+
     const reconciliationRun = await getReconciliationRun(runId);
-    
+
     if (!reconciliationRun) {
       return res.status(404).json({
         success: false,
-        error: 'Reconciliation run not found'
+        error: "Reconciliation run not found",
       });
     }
-    
+
     res.status(200).json({
       success: true,
       runId,
@@ -121,14 +142,14 @@ const getSummary = async (req, res) => {
         matched: reconciliationRun.stats.matched,
         conflicting: reconciliationRun.stats.conflicting,
         unmatched_user: reconciliationRun.stats.unmatchedUser,
-        unmatched_exchange: reconciliationRun.stats.unmatchedExchange
-      }
+        unmatched_exchange: reconciliationRun.stats.unmatchedExchange,
+      },
     });
   } catch (error) {
-    console.error('Error fetching summary:', error);
+    console.error("Error fetching summary:", error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -140,35 +161,36 @@ const getSummary = async (req, res) => {
 const getUnmatched = async (req, res) => {
   try {
     const { runId } = req.params;
-    
+
     const reconciliationRun = await getReconciliationRun(runId);
-    
+
     if (!reconciliationRun) {
       return res.status(404).json({
         success: false,
-        error: 'Reconciliation run not found'
+        error: "Reconciliation run not found",
       });
     }
-    
+
     // Re-run matching to get unmatched details
     const runConfig = {
-      timestampToleranceSeconds: reconciliationRun.config.timestampToleranceSeconds,
-      quantityTolerancePct: reconciliationRun.config.quantityTolerancePct
+      timestampToleranceSeconds:
+        reconciliationRun.config.timestampToleranceSeconds,
+      quantityTolerancePct: reconciliationRun.config.quantityTolerancePct,
     };
-    
+
     const matchingResults = await matchTransactions(runConfig);
     const unmatched = getUnmatchedTransactions(matchingResults);
-    
+
     res.status(200).json({
       success: true,
       runId,
-      unmatched
+      unmatched,
     });
   } catch (error) {
-    console.error('Error fetching unmatched:', error);
+    console.error("Error fetching unmatched:", error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -177,5 +199,5 @@ module.exports = {
   reconcile,
   getReport,
   getSummary,
-  getUnmatched
+  getUnmatched,
 };
