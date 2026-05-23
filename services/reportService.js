@@ -34,15 +34,6 @@ const formatTransactionForCSV = (tx, prefix) => {
  * @returns {Promise<string>} Path to generated report file
  */
 const generateCSVReport = async (matchingResults, runId) => {
-  const reportsDir = path.join(__dirname, "../../reports");
-
-  // Ensure reports directory exists
-  if (!fs.existsSync(reportsDir)) {
-    fs.mkdirSync(reportsDir, { recursive: true });
-  }
-
-  const reportPath = path.join(reportsDir, `reconciliation_${runId}.csv`);
-
   // CSV header
   const headers = [
     "category",
@@ -178,12 +169,9 @@ const generateCSVReport = async (matchingResults, runId) => {
     ),
   ].join("\n");
 
-  // Write to file
-  fs.writeFileSync(reportPath, csvContent, "utf8");
+  console.log(`Report generated for runId: ${runId}`);
 
-  console.log(`Report generated at: ${reportPath}`);
-
-  return reportPath;
+  return csvContent;
 };
 
 /**
@@ -194,7 +182,7 @@ const generateCSVReport = async (matchingResults, runId) => {
  * @param {string} reportPath - Path to generated report
  * @returns {Promise<object>} Saved reconciliation run
  */
-const saveReconciliationRun = async (runId, config, stats, reportPath) => {
+const saveReconciliationRun = async (runId, config, stats, reportContent) => {
   const reconciliationRun = new ReconciliationRun({
     runId,
     config: {
@@ -207,7 +195,7 @@ const saveReconciliationRun = async (runId, config, stats, reportPath) => {
       unmatchedUser: stats.unmatchedUser,
       unmatchedExchange: stats.unmatchedExchange,
     },
-    reportPath,
+    reportContent,
   });
 
   await reconciliationRun.save();

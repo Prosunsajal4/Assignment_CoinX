@@ -43,6 +43,10 @@ const reconciliationRunSchema = new mongoose.Schema({
   reportPath: {
     type: String,
     required: false
+  },
+  reportContent: {
+    type: String,
+    required: false
   }
 }, {
   timestamps: true

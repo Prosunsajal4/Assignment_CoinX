@@ -33,14 +33,14 @@ const reconcile = async (req, res) => {
     const matchingResults = await matchTransactions(runConfig);
 
     // Generate CSV report
-    const reportPath = await generateCSVReport(matchingResults, runId);
+    const reportContent = await generateCSVReport(matchingResults, runId);
 
     // Save reconciliation run to database
     await saveReconciliationRun(
       runId,
       runConfig,
       matchingResults.stats,
-      reportPath,
+      reportContent,
     );
 
     res.status(200).json({
@@ -76,11 +76,10 @@ const getReport = async (req, res) => {
       });
     }
 
-    const fs = require("fs");
-    if (!fs.existsSync(reconciliationRun.reportPath)) {
+    if (!reconciliationRun.reportContent) {
       return res.status(404).json({
         success: false,
-        error: "Report file not found",
+        error: "Report content not found",
       });
     }
 
@@ -90,8 +89,7 @@ const getReport = async (req, res) => {
       `attachment; filename=reconciliation_${runId}.csv`,
     );
 
-    const fileStream = fs.createReadStream(reconciliationRun.reportPath);
-    fileStream.pipe(res);
+    res.send(reconciliationRun.reportContent);
   } catch (error) {
     console.error("Error fetching report:", error);
     res.status(500).json({
