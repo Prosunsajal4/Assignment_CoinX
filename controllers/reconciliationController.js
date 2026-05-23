@@ -2,30 +2,15 @@ const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const { ingestAllTransactions } = require("../services/ingestionService");
 const { matchTransactions } = require("../services/matchingService");
-const {
-  generateCSVReport,
-  saveReconciliationRun,
-  getReconciliationRun,
-  getUnmatchedTransactions,
-} = require("../services/reportService");
+const { generateCSVReport, saveReconciliationRun, getReconciliationRun, getUnmatchedTransactions } = require("../services/reportService");
 const config = require("../utils/config");
 
-/**
- * Trigger reconciliation run
- * POST /reconcile
- */
 const reconcile = async (req, res) => {
   try {
-    // Get config overrides from request body
-    const timestampToleranceSeconds =
-      req.body.timestampToleranceSeconds || config.timestampToleranceSeconds;
-    const quantityTolerancePct =
-      req.body.quantityTolerancePct || config.quantityTolerancePct;
+    const timestampToleranceSeconds = req.body.timestampToleranceSeconds || config.timestampToleranceSeconds;
+    const quantityTolerancePct = req.body.quantityTolerancePct || config.quantityTolerancePct;
 
-    const runConfig = {
-      timestampToleranceSeconds,
-      quantityTolerancePct,
-    };
+    const runConfig = { timestampToleranceSeconds, quantityTolerancePct };
 
     console.log("Starting reconciliation with config:", runConfig);
 
